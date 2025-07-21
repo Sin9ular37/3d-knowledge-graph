@@ -1,0 +1,298 @@
+{
+  "title": "人工智能知识图谱",
+  "description": "这是一个关于人工智能领域的知识图谱数据",
+  "version": "1.0",
+  "created_at": "2025-07-21",
+  "nodes": [
+    {
+      "id": "AI",
+      "name": "人工智能",
+      "category": 0,
+      "value": 100,
+      "description": "一门让机器模拟人类智能的科学技术",
+      "properties": {
+        "field": "计算机科学",
+        "level": "顶级概念"
+      }
+    },
+    {
+      "id": "ML",
+      "name": "机器学习",
+      "category": 0,
+      "value": 90,
+      "description": "让计算机从数据中学习的方法",
+      "properties": {
+        "field": "人工智能",
+        "level": "核心技术"
+      }
+    },
+    {
+      "id": "DL",
+      "name": "深度学习",
+      "category": 0,
+      "value": 80,
+      "description": "基于神经网络的机器学习方法",
+      "properties": {
+        "field": "机器学习",
+        "level": "前沿技术"
+      }
+    },
+    {
+      "id": "NLP",
+      "name": "自然语言处理",
+      "category": 1,
+      "value": 70,
+      "description": "让计算机理解和处理自然语言的技术",
+      "properties": {
+        "field": "应用领域",
+        "level": "专业技术"
+      }
+    },
+    {
+      "id": "CV",
+      "name": "计算机视觉",
+      "category": 1,
+      "value": 75,
+      "description": "让计算机理解和分析图像的技术",
+      "properties": {
+        "field": "应用领域",
+        "level": "专业技术"
+      }
+    },
+    {
+      "id": "RL",
+      "name": "强化学习",
+      "category": 1,
+      "value": 65,
+      "description": "通过与环境交互学习最优策略的方法",
+      "properties": {
+        "field": "应用领域",
+        "level": "专业技术"
+      }
+    },
+    {
+      "id": "TensorFlow",
+      "name": "TensorFlow",
+      "category": 2,
+      "value": 60,
+      "description": "Google开发的开源机器学习框架",
+      "properties": {
+        "field": "工具框架",
+        "level": "开发工具"
+      }
+    },
+    {
+      "id": "PyTorch",
+      "name": "PyTorch",
+      "category": 2,
+      "value": 58,
+      "description": "Facebook开发的开源机器学习框架",
+      "properties": {
+        "field": "工具框架",
+        "level": "开发工具"
+      }
+    },
+    {
+      "id": "GPT",
+      "name": "GPT模型",
+      "category": 3,
+      "value": 85,
+      "description": "生成式预训练transformer模型",
+      "properties": {
+        "field": "具体模型",
+        "level": "实际应用"
+      }
+    },
+    {
+      "id": "BERT",
+      "name": "BERT模型",
+      "category": 3,
+      "value": 80,
+      "description": "双向编码器表示transformer模型",
+      "properties": {
+        "field": "具体模型",
+        "level": "实际应用"
+      }
+    },
+    {
+      "id": "CNN",
+      "name": "卷积神经网络",
+      "category": 3,
+      "value": 75,
+      "description": "专门处理图像数据的神经网络",
+      "properties": {
+        "field": "具体模型",
+        "level": "实际应用"
+      }
+    },
+    {
+      "id": "RNN",
+      "name": "循环神经网络",
+      "category": 3,
+      "value": 70,
+      "description": "处理序列数据的神经网络",
+      "properties": {
+        "field": "具体模型",
+        "level": "实际应用"
+      }
+    },
+    {
+      "id": "Transformer",
+      "name": "Transformer",
+      "category": 3,
+      "value": 88,
+      "description": "基于注意力机制的神经网络架构",
+      "properties": {
+        "field": "具体模型",
+        "level": "实际应用"
+      }
+    }
+  ],
+  "links": [
+    {
+      "source": "AI",
+      "target": "ML",
+      "value": 10,
+      "relationship": "包含",
+      "description": "人工智能包含机器学习"
+    },
+    {
+      "source": "ML",
+      "target": "DL",
+      "value": 8,
+      "relationship": "包含",
+      "description": "机器学习包含深度学习"
+    },
+    {
+      "source": "ML",
+      "target": "NLP",
+      "value": 7,
+      "relationship": "应用于",
+      "description": "机器学习应用于自然语言处理"
+    },
+    {
+      "source": "ML",
+      "target": "CV",
+      "value": 7,
+      "relationship": "应用于",
+      "description": "机器学习应用于计算机视觉"
+    },
+    {
+      "source": "ML",
+      "target": "RL",
+      "value": 6,
+      "relationship": "包含",
+      "description": "机器学习包含强化学习"
+    },
+    {
+      "source": "DL",
+      "target": "TensorFlow",
+      "value": 5,
+      "relationship": "实现于",
+      "description": "深度学习可用TensorFlow实现"
+    },
+    {
+      "source": "DL",
+      "target": "PyTorch",
+      "value": 5,
+      "relationship": "实现于",
+      "description": "深度学习可用PyTorch实现"
+    },
+    {
+      "source": "NLP",
+      "target": "GPT",
+      "value": 8,
+      "relationship": "使用",
+      "description": "自然语言处理使用GPT模型"
+    },
+    {
+      "source": "NLP",
+      "target": "BERT",
+      "value": 7,
+      "relationship": "使用",
+      "description": "自然语言处理使用BERT模型"
+    },
+    {
+      "source": "CV",
+      "target": "CNN",
+      "value": 9,
+      "relationship": "使用",
+      "description": "计算机视觉主要使用CNN"
+    },
+    {
+      "source": "DL",
+      "target": "CNN",
+      "value": 6,
+      "relationship": "包含",
+      "description": "深度学习包含CNN"
+    },
+    {
+      "source": "DL",
+      "target": "RNN",
+      "value": 6,
+      "relationship": "包含",
+      "description": "深度学习包含RNN"
+    },
+    {
+      "source": "NLP",
+      "target": "RNN",
+      "value": 5,
+      "relationship": "使用",
+      "description": "自然语言处理使用RNN"
+    },
+    {
+      "source": "DL",
+      "target": "Transformer",
+      "value": 9,
+      "relationship": "包含",
+      "description": "深度学习包含Transformer"
+    },
+    {
+      "source": "Transformer",
+      "target": "GPT",
+      "value": 8,
+      "relationship": "基础架构",
+      "description": "Transformer是GPT的基础架构"
+    },
+    {
+      "source": "Transformer",
+      "target": "BERT",
+      "value": 8,
+      "relationship": "基础架构",
+      "description": "Transformer是BERT的基础架构"
+    }
+  ],
+  "categories": [
+    {
+      "id": 0,
+      "name": "核心概念",
+      "color": "#ff6b6b",
+      "description": "人工智能领域的基础概念"
+    },
+    {
+      "id": 1,
+      "name": "应用领域",
+      "color": "#4ecdc4",
+      "description": "人工智能的主要应用方向"
+    },
+    {
+      "id": 2,
+      "name": "工具框架",
+      "color": "#45b7d1",
+      "description": "开发和部署AI模型的工具"
+    },
+    {
+      "id": 3,
+      "name": "具体模型",
+      "color": "#96ceb4",
+      "description": "实际使用的AI模型和算法"
+    }
+  ],
+  "metadata": {
+    "total_nodes": 13,
+    "total_links": 16,
+    "last_updated": "2025-07-21T10:00:00Z",
+    "data_source": "测试数据",
+    "author": "系统管理员"
+  }
+} 
