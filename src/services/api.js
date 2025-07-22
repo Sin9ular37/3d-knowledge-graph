@@ -1,6 +1,6 @@
 /**
  * 知识图谱数据API服务
- * 支持从本地JSON文件、远程API或用户上传文件获取数据
+ * 支持从远程API获取数据和生成测试数据
  */
 
 class KnowledgeGraphAPI {
@@ -9,48 +9,7 @@ class KnowledgeGraphAPI {
     this.dataCache = new Map(); // 数据缓存
   }
 
-  /**
-   * 从本地JSON文件获取数据（支持多种数据源）
-   * @param {string} dataSource - 数据源类型
-   * @returns {Promise} 返回知识图谱数据
-   */
-  async loadFromLocalFile(dataSource = 'knowledge') {
-    const fileMap = {
-      'knowledge': 'knowledge-graph-data.json',
-      'case': 'case-analysis-data.json',
-      'test': null // 生成测试数据
-    };
 
-    const filename = fileMap[dataSource];
-    
-    // 如果是测试数据，直接生成
-    if (dataSource === 'test') {
-      return this.generateSampleData();
-    }
-
-    // 检查缓存
-    const cacheKey = `local_${filename}`;
-    if (this.dataCache.has(cacheKey)) {
-      return this.dataCache.get(cacheKey);
-    }
-
-    try {
-      const response = await fetch(`/data/${filename}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data = await response.json();
-      const formattedData = this.formatData(data);
-      
-      // 缓存数据
-      this.dataCache.set(cacheKey, formattedData);
-      return formattedData;
-    } catch (error) {
-      console.error('加载本地JSON文件失败:', error);
-      // 如果加载失败，返回示例数据
-      return this.generateSampleData();
-    }
-  }
 
   /**
    * 从远程API获取数据
@@ -88,47 +47,7 @@ class KnowledgeGraphAPI {
     }
   }
 
-  /**
-   * 提交用户选择的文件
-   * @param {File} file - 用户上传的JSON文件
-   * @returns {Promise} 返回知识图谱数据
-   */
-  async loadFromFile(file) {
-    return new Promise((resolve, reject) => {
-      // 检查文件类型
-      if (!file.type.includes('json') && !file.name.endsWith('.json')) {
-        reject(new Error('请选择JSON格式的文件'));
-        return;
-      }
 
-      // 检查文件大小（限制为10MB）
-      if (file.size > 10 * 1024 * 1024) {
-        reject(new Error('文件大小不能超过10MB'));
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const data = JSON.parse(event.target.result);
-          const formattedData = this.formatData(data);
-          
-          // 验证数据
-          if (!this.validateData(formattedData)) {
-            reject(new Error('JSON文件数据格式不正确'));
-            return;
-          }
-          
-          resolve(formattedData);
-        } catch (error) {
-          reject(new Error('JSON文件解析失败：' + error.message));
-        }
-      };
-      
-      reader.onerror = () => reject(new Error('文件读取失败'));
-      reader.readAsText(file, 'UTF-8');
-    });
-  }
 
   /**
    * 格式化数据，确保数据结构正确

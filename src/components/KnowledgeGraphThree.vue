@@ -48,9 +48,6 @@
             <button @click="refreshData" class="btn btn-primary">
               🔄 刷新数据
             </button>
-            <button @click="loadFromFile" class="btn btn-accent">
-              ⬆️ 上传文件
-            </button>
           </div>
         </div>
         
@@ -253,6 +250,73 @@ export default {
       this.applyForceLayout()
     },
     
+    // 创建文字贴图
+    createTextTexture(text, backgroundColor = 'transparent', textColor = '#ffffff') {
+      const canvas = document.createElement('canvas')
+      const context = canvas.getContext('2d')
+      
+      // 设置画布大小
+      canvas.width = 512
+      canvas.height = 256
+      
+      // 设置字体 - 增大字号
+      context.font = 'Bold 48px Arial'
+      
+      // 如果需要背景色，绘制背景
+      if (backgroundColor !== 'transparent') {
+        context.fillStyle = backgroundColor
+        context.fillRect(0, 0, canvas.width, canvas.height)
+      }
+      
+      // 绘制文字描边（增加可读性）
+      context.strokeStyle = '#000000'
+      context.lineWidth = 4
+      context.textAlign = 'center'
+      context.textBaseline = 'middle'
+      
+      // 绘制文字
+      context.fillStyle = textColor
+      
+      // 文字换行处理
+      const maxWidth = canvas.width - 40
+      const lines = this.wrapText(context, text, maxWidth)
+      const lineHeight = 56
+      const startY = (canvas.height - (lines.length - 1) * lineHeight) / 2
+      
+      lines.forEach((line, index) => {
+        const y = startY + index * lineHeight
+        // 先绘制描边
+        context.strokeText(line, canvas.width / 2, y)
+        // 再绘制文字
+        context.fillText(line, canvas.width / 2, y)
+      })
+      
+      const texture = markRaw(new THREE.CanvasTexture(canvas))
+      texture.needsUpdate = true
+      return texture
+    },
+    
+    // 文字换行处理
+    wrapText(context, text, maxWidth) {
+      const words = text.split('')
+      const lines = []
+      let currentLine = ''
+      
+      for (const char of words) {
+        const testLine = currentLine + char
+        const metrics = context.measureText(testLine)
+        
+        if (metrics.width > maxWidth && currentLine !== '') {
+          lines.push(currentLine)
+          currentLine = char
+        } else {
+          currentLine = testLine
+        }
+      }
+      lines.push(currentLine)
+      return lines
+    },
+
     // 渲染节点
     async renderNodes() {
       const nodeGeometry = markRaw(new THREE.SphereGeometry(1, 16, 16))
@@ -286,6 +350,32 @@ export default {
         
         this.scene.add(nodeMesh)
         this.nodeObjects.push(nodeMesh)
+        
+        // 添加文字标签
+        const textTexture = this.createTextTexture(node.name, 'transparent', '#ffffff')
+        const textMaterial = markRaw(new THREE.MeshBasicMaterial({
+          map: textTexture,
+          transparent: true,
+          alphaTest: 0.1,
+          side: THREE.DoubleSide
+        }))
+        
+        const textGeometry = markRaw(new THREE.PlaneGeometry(8, 4))
+        const textMesh = markRaw(new THREE.Mesh(textGeometry, textMaterial))
+        
+        // 将文字标签放在节点上方
+        textMesh.position.copy(nodeMesh.position)
+        textMesh.position.y += size + 3
+        
+        // 存储文字标签数据，便于后续更新
+        textMesh.userData = { 
+          nodeIndex: i, 
+          isLabel: true,
+          parentNode: nodeMesh
+        }
+        
+        this.scene.add(textMesh)
+        this.nodeObjects.push(textMesh)
       }
     },
     
@@ -425,8 +515,19 @@ export default {
         
         // 节点动画
         for (const node of this.nodeObjects) {
-          node.position.y += Math.sin(Date.now() * 0.001 + node.userData.index) * 0.02
-          node.rotation.y += 0.01
+          if (node.userData.isLabel) {
+            // 文字标签始终朝向摄像机
+            node.lookAt(this.camera.position)
+            // 更新文字标签位置跟随父节点
+            if (node.userData.parentNode) {
+              node.position.copy(node.userData.parentNode.position)
+              node.position.y += node.userData.parentNode.scale.x + 3
+            }
+          } else {
+            // 普通节点动画
+            node.position.y += Math.sin(Date.now() * 0.001 + node.userData.index) * 0.02
+            node.rotation.y += 0.01
+          }
         }
         
         this.updateLinkPositions()
@@ -462,7 +563,7 @@ export default {
     
     // 获取分类颜色
     getCategoryColor(category) {
-      const colors = ['#ff9800', '#f44336', '#4caf50', '#2196f3', '#9c27b0', '#607d8b']
+      const colors = ['#ff4500', '#ff1744', '#00e676', '#2979ff', '#e91e63', '#ffab00']
       return colors[category] || '#ffffff'
     },
     
@@ -511,32 +612,7 @@ export default {
       this.loadTestData()
     },
     
-    loadFromFile() {
-      const input = document.createElement('input')
-      input.type = 'file'
-      input.accept = 'application/json'
-      input.onchange = async (event) => {
-        const file = event.target.files[0]
-        if (file) {
-          try {
-            this.loading = true
-            this.loadingText = '解析文件...'
-            
-            const data = await apiService.loadFromFile(file)
-            this.graphData = data
-            this.nodeCount = data.nodes.length
-            this.linkCount = data.links.length
-            
-            await this.renderGraph()
-            this.loading = false
-          } catch (error) {
-            console.error('文件加载失败:', error)
-            this.loading = false
-          }
-        }
-      }
-      input.click()
-    },
+
     
     openNodeDetail(node) {
       this.selectedNode = node
