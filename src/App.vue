@@ -1,17 +1,12 @@
 <template>
   <div id="app">
-    <KnowledgeGraphThree />
+    <router-view />
   </div>
 </template>
 
 <script>
-import KnowledgeGraphThree from './components/KnowledgeGraphThree.vue'
-
 export default {
-  name: 'App',
-  components: {
-    KnowledgeGraphThree
-  }
+  name: 'App'
 }
 </script>
 

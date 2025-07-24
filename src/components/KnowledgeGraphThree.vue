@@ -24,8 +24,11 @@
     <div class="title-bar">
       <h1 class="main-title">
         <span class="title-icon">🌌</span>
-        知识图谱
+        {{ graphData.title || '知识图谱' }}
       </h1>
+      <p class="subtitle" v-if="graphData.description">
+        {{ graphData.description }}
+      </p>
     </div>
     
     <!-- Three.js 画布容器 -->
@@ -47,6 +50,12 @@
           <div class="control-buttons">
             <button @click="refreshData" class="btn btn-primary">
               🔄 刷新数据
+            </button>
+            <button @click="switchDataSource(true)" class="btn btn-accent">
+              🏢 企业数据
+            </button>
+            <button @click="switchDataSource(false)" class="btn btn-outline">
+              🤖 示例数据
             </button>
           </div>
         </div>
@@ -104,8 +113,32 @@
         <div class="modal-body">
           <div class="node-info">
             <p><strong>类型:</strong> {{ selectedNode.properties?.type || '未知' }}</p>
-            <p><strong>权重:</strong> {{ selectedNode.value }}</p>
-            <p v-if="selectedNode.description"><strong>描述:</strong> {{ selectedNode.description }}</p>
+            <p><strong>权重:</strong> {{ Math.round(selectedNode.value) }}</p>
+            
+            <!-- 企业特有信息 -->
+            <template v-if="selectedNode.properties?.type === 'Enterprise'">
+              <p v-if="selectedNode.properties?.setup_time">
+                <strong>成立时间:</strong> {{ selectedNode.properties.setup_time }}
+              </p>
+              <p v-if="selectedNode.properties?.address">
+                <strong>地址:</strong> {{ selectedNode.properties.address }}
+              </p>
+              <p v-if="selectedNode.properties?.captial">
+                <strong>注册资本:</strong> {{ selectedNode.properties.captial }}
+              </p>
+              <p v-if="selectedNode.properties?.credit_code">
+                <strong>信用代码:</strong> {{ selectedNode.properties.credit_code }}
+              </p>
+            </template>
+            
+            <!-- 通用描述 -->
+            <p v-if="selectedNode.description" class="description">
+              <strong>描述:</strong><br>
+              <span class="description-text">{{ selectedNode.description }}</span>
+            </p>
+            
+            <!-- 节点ID -->
+            <p class="node-id"><strong>节点ID:</strong> {{ selectedNode.id }}</p>
           </div>
         </div>
       </div>
@@ -226,18 +259,38 @@ export default {
     // 加载测试数据
     async loadTestData() {
       this.loading = true
-      this.loadingText = '正在生成测试数据...'
+      this.loadingText = '正在加载企业关系数据...'
       
       try {
-        const data = await apiService.generateSampleData()
+        // 使用records.json数据
+        const data = await apiService.loadFromRecords()
         this.graphData = data
         this.nodeCount = data.nodes.length
         this.linkCount = data.links.length
         
         await this.renderGraph()
         this.loading = false
+        
+        console.log('数据加载完成:', {
+          nodes: this.nodeCount,
+          links: this.linkCount,
+          categories: data.categories?.length || 0
+        })
       } catch (error) {
-        console.error('加载测试数据失败:', error)
+        console.error('加载数据失败:', error)
+        this.loadingText = '数据加载失败，使用示例数据...'
+        
+        // 如果records.json加载失败，回退到示例数据
+        try {
+          const fallbackData = await apiService.generateSampleData()
+          this.graphData = fallbackData
+          this.nodeCount = fallbackData.nodes.length
+          this.linkCount = fallbackData.links.length
+          await this.renderGraph()
+        } catch (fallbackError) {
+          console.error('示例数据也加载失败:', fallbackError)
+        }
+        
         this.loading = false
       }
     },
@@ -316,7 +369,7 @@ export default {
       lines.push(currentLine)
       return lines
     },
-
+    
     // 渲染节点
     async renderNodes() {
       const nodeGeometry = markRaw(new THREE.SphereGeometry(1, 16, 16))
@@ -525,8 +578,8 @@ export default {
             }
           } else {
             // 普通节点动画
-            node.position.y += Math.sin(Date.now() * 0.001 + node.userData.index) * 0.02
-            node.rotation.y += 0.01
+          node.position.y += Math.sin(Date.now() * 0.001 + node.userData.index) * 0.02
+          node.rotation.y += 0.01
           }
         }
         
@@ -610,6 +663,28 @@ export default {
     
     refreshData() {
       this.loadTestData()
+    },
+    
+    // 切换数据源
+    async switchDataSource(useRecords = true) {
+      this.loading = true
+      this.loadingText = useRecords ? '正在加载企业关系数据...' : '正在生成示例数据...'
+      
+      try {
+        const data = useRecords 
+          ? await apiService.loadFromRecords()
+          : await apiService.generateSampleData()
+          
+        this.graphData = data
+        this.nodeCount = data.nodes.length
+        this.linkCount = data.links.length
+        
+        await this.renderGraph()
+        this.loading = false
+      } catch (error) {
+        console.error('切换数据源失败:', error)
+        this.loading = false
+      }
     },
     
 
@@ -792,6 +867,14 @@ export default {
   50% {
     text-shadow: 0 0 20px rgba(78, 205, 196, 1), 0 0 40px rgba(78, 205, 196, 0.8);
   }
+}
+
+.subtitle {
+  color: #ffffff;
+  font-size: 16px;
+  margin: 0;
+  opacity: 0.8;
+  text-align: center;
 }
 
 /* Three.js 容器 */
@@ -1013,6 +1096,26 @@ export default {
 
 .node-info strong {
   color: #4ecdc4;
+}
+
+.description {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.description-text {
+  white-space: pre-line;
+  color: #e0e0e0;
+  line-height: 1.4;
+}
+
+.node-id {
+  font-size: 12px;
+  color: #888;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* 响应式设计 */

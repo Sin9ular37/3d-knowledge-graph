@@ -9,8 +9,6 @@ class KnowledgeGraphAPI {
     this.dataCache = new Map(); // 数据缓存
   }
 
-
-
   /**
    * 从远程API获取数据
    * @param {string} endpoint - API端点
@@ -47,7 +45,39 @@ class KnowledgeGraphAPI {
     }
   }
 
+  /**
+   * 从本地records.json文件加载数据
+   * @returns {Promise} 返回知识图谱数据
+   */
+  async loadFromRecords() {
+    const cacheKey = 'records_data';
+    if (this.dataCache.has(cacheKey)) {
+      return this.dataCache.get(cacheKey);
+    }
 
+    try {
+      // 使用fetch加载records.json
+      // 在开发环境中，直接从public目录或使用相对路径
+      const dataUrl = process.env.NODE_ENV === 'production' 
+        ? '/graphview/data/records.json' 
+        : '/data/records.json';
+        
+      const response = await fetch(dataUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const recordsData = await response.json();
+      const formattedData = this.formatRecordsData(recordsData);
+      
+      // 缓存数据
+      this.dataCache.set(cacheKey, formattedData);
+      return formattedData;
+    } catch (error) {
+      console.error('从records.json加载数据失败:', error);
+      throw error;
+    }
+  }
 
   /**
    * 格式化数据，确保数据结构正确
@@ -106,6 +136,227 @@ class KnowledgeGraphAPI {
         ...rawData.metadata
       }
     };
+  }
+
+  /**
+   * 格式化records.json数据为知识图谱格式
+   * @param {Array} recordsData - records.json的原始数据
+   * @returns {Object} 格式化后的知识图谱数据
+   */
+  formatRecordsData(recordsData) {
+    console.log('开始格式化records数据，记录数量:', recordsData.length);
+    
+    const nodesMap = new Map();
+    const linksArray = [];
+    const categories = new Map();
+
+    // 处理每个记录
+    recordsData.forEach((record, index) => {
+      if (!record.p || !record.p.segments) {
+        console.warn(`记录 ${index} 缺少必要字段:`, record);
+        return;
+      }
+
+      // 处理每个路径段
+      record.p.segments.forEach(segment => {
+        // 处理起始节点
+        this.processNode(segment.start, nodesMap, categories);
+        
+        // 处理结束节点
+        this.processNode(segment.end, nodesMap, categories);
+        
+        // 处理关系
+        if (segment.relationship) {
+          const link = {
+            source: segment.start.identity.toString(),
+            target: segment.end.identity.toString(),
+            value: Math.random() * 5 + 1, // 随机权重
+            relationship: segment.relationship.properties?.name || segment.relationship.type || '关联',
+            description: `${segment.start.properties?.name || '未知'} 与 ${segment.end.properties?.name || '未知'} 的关系`,
+            type: segment.relationship.type
+          };
+          linksArray.push(link);
+        }
+      });
+    });
+
+    // 转换nodes Map为数组
+    const nodesArray = Array.from(nodesMap.values());
+    
+    // 转换categories Map为数组
+    const categoriesArray = Array.from(categories.values());
+
+    console.log('数据格式化完成:', {
+      nodes: nodesArray.length,
+      links: linksArray.length,
+      categories: categoriesArray.length
+    });
+
+    return {
+      title: '企业关系知识图谱',
+      description: '基于真实数据的企业关系网络分析',
+      nodes: nodesArray,
+      links: linksArray,
+      categories: categoriesArray,
+      metadata: {
+        total_nodes: nodesArray.length,
+        total_links: linksArray.length,
+        last_updated: new Date().toISOString(),
+        data_source: 'records.json',
+        version: '1.0'
+      }
+    };
+  }
+
+  /**
+   * 处理单个节点
+   * @param {Object} nodeData - 节点原始数据
+   * @param {Map} nodesMap - 节点映射表
+   * @param {Map} categories - 分类映射表
+   */
+  processNode(nodeData, nodesMap, categories) {
+    if (!nodeData || !nodeData.identity) {
+      return;
+    }
+
+    const nodeId = nodeData.identity.toString();
+    
+    // 如果节点已存在，跳过
+    if (nodesMap.has(nodeId)) {
+      return;
+    }
+
+    // 确定节点类型和分类
+    const labels = nodeData.labels || ['Unknown'];
+    const primaryLabel = labels[0];
+    
+    // 获取或创建分类
+    let categoryId = this.getCategoryId(primaryLabel, categories);
+    
+    // 计算节点值（基于属性数量和重要性）
+    const nodeValue = this.calculateNodeValue(nodeData);
+
+    const node = {
+      id: nodeId,
+      name: nodeData.properties?.name || `节点${nodeId}`,
+      category: categoryId,
+      value: nodeValue,
+      description: this.generateNodeDescription(nodeData),
+      properties: {
+        type: primaryLabel,
+        labels: labels,
+        ...nodeData.properties
+      },
+      originalData: nodeData
+    };
+
+    nodesMap.set(nodeId, node);
+  }
+
+  /**
+   * 获取或创建分类ID
+   * @param {string} label - 节点标签
+   * @param {Map} categories - 分类映射表
+   * @returns {number} 分类ID
+   */
+  getCategoryId(label, categories) {
+    // 预定义的分类映射
+    const categoryMapping = {
+      'Enterprise': { name: '企业', color: '#ff9800' },
+      'Country': { name: '国家', color: '#f44336' },
+      'Region': { name: '地区', color: '#4caf50' },
+      'Type': { name: '类型', color: '#2196f3' },
+      'Industry': { name: '行业', color: '#9c27b0' },
+      'Product': { name: '产品', color: '#607d8b' }
+    };
+
+    // 查找现有分类
+    for (const [id, category] of categories) {
+      if (category.label === label) {
+        return id;
+      }
+    }
+
+    // 创建新分类
+    const categoryId = categories.size;
+    const categoryInfo = categoryMapping[label] || { 
+      name: label, 
+      color: this.getRandomColor() 
+    };
+    
+    categories.set(categoryId, {
+      id: categoryId,
+      name: categoryInfo.name,
+      color: categoryInfo.color,
+      label: label,
+      description: `${categoryInfo.name}相关节点`
+    });
+
+    return categoryId;
+  }
+
+  /**
+   * 计算节点值
+   * @param {Object} nodeData - 节点数据
+   * @returns {number} 节点值
+   */
+  calculateNodeValue(nodeData) {
+    let value = 20; // 基础值
+
+    // 根据属性数量增加值
+    if (nodeData.properties) {
+      value += Object.keys(nodeData.properties).length * 5;
+    }
+
+    // 根据节点类型调整值
+    const labels = nodeData.labels || [];
+    if (labels.includes('Enterprise')) {
+      value += 30; // 企业节点更重要
+    }
+
+    // 添加随机因子
+    value += Math.random() * 20;
+
+    return Math.min(value, 100); // 限制最大值
+  }
+
+  /**
+   * 生成节点描述
+   * @param {Object} nodeData - 节点数据
+   * @returns {string} 节点描述
+   */
+  generateNodeDescription(nodeData) {
+    const props = nodeData.properties || {};
+    const name = props.name || '未知节点';
+    const type = nodeData.labels?.[0] || '未知类型';
+    
+    let description = `${type}: ${name}`;
+    
+    // 添加特定属性的描述
+    if (props.address) {
+      description += `\n地址: ${props.address}`;
+    }
+    if (props.setup_time) {
+      description += `\n成立时间: ${props.setup_time}`;
+    }
+    if (props.captial) {
+      description += `\n注册资本: ${props.captial}`;
+    }
+    
+    return description;
+  }
+
+  /**
+   * 生成随机颜色
+   * @returns {string} 十六进制颜色值
+   */
+  getRandomColor() {
+    const colors = [
+      '#ff9800', '#f44336', '#4caf50', '#2196f3', 
+      '#9c27b0', '#607d8b', '#795548', '#ff5722',
+      '#3f51b5', '#009688', '#8bc34a', '#ffc107'
+    ];
+    return colors[Math.floor(Math.random() * colors.length)];
   }
 
   /**
